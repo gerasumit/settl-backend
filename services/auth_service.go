@@ -1,56 +1,53 @@
 package services
 
 import (
-    "context"
-    "errors"
-    "os"
-    "time"
+	"context"
+	"errors"
+	"fmt"
+	"os"
 
-    "github.com/dgrijalva/jwt-go"
-    "github.com/gin-gonic/gin"
-    "google.golang.org/api/idtoken"
+	"settl-backend/config"
+	"settl-backend/token"
+
+	"github.com/gin-gonic/gin"
+	"google.golang.org/api/idtoken"
 )
 
 type GoogleLoginRequest struct {
-    IDToken string `json:"id_token" binding:"required"`
-}
-
-type Claims struct {
-    Email string `json:"email"`
-    jwt.StandardClaims
+	IDToken string `json:"id_token" binding:"required"`
+	Email   string `json:"email" binding:required`
 }
 
 var jwtKey = []byte(os.Getenv("JWT_SECRET"))
 
-func HandleGoogleLogin(request GoogleLoginRequest) (string, error) {
-    payload, err := idtoken.Validate(context.Background(), request.IDToken, os.Getenv("GOOGLE_CLIENT_ID"))
-    if err != nil {
-        return "", errors.New("invalid Google token")
-    }
+func HandleGoogleLogin(config config.Config, request GoogleLoginRequest) (string, error) {
+	tokenMaker, err := token.GenerateJWTMaker(config.TokenSymmetricKey)
 
-    email, ok := payload.Claims["email"].(string)
-    if !ok {
-        return "", errors.New("failed to parse email from token")
-    }
+	if err != nil {
+		return "", fmt.Errorf("Cannot create token maker")
+	}
 
-    expirationTime := time.Now().Add(24 * time.Hour)
-    claims := &Claims{
-        Email: email,
-        StandardClaims: jwt.StandardClaims{
-            ExpiresAt: expirationTime.Unix(),
-        },
-    }
-    
-    token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-    signedToken, err := token.SignedString(jwtKey)
-    if err != nil {
-        return "", errors.New("failed to generate JWT")
-    }
+	payload, err := idtoken.Validate(context.Background(), request.IDToken, config.GoogleClientID)
 
-    return signedToken, nil
+	if err != nil {
+		return "", errors.New("invalid Google token")
+	}
+
+	email, ok := payload.Claims["email"].(string)
+	if !ok {
+		return "", errors.New("failed to parse email from token")
+	}
+
+	signedToken, err := tokenMaker.CreateToken(email, config.AccessTokenDuration)
+
+	if err != nil {
+		return "", errors.New("failed to generate JWT")
+	}
+
+	return signedToken, nil
 }
 
 func HandleLogout(c *gin.Context) error {
-    // In a stateless JWT setup, logout is typically handled client-side by deleting the token.
-    return nil
+	// In a stateless JWT setup, logout is typically handled client-side by deleting the token.
+	return nil
 }
