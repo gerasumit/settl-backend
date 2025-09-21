@@ -1,0 +1,7 @@
+DROP TABLE IF EXISTS user_groups;
+DROP TABLE IF EXISTS expense_payments;
+DROP TABLE IF EXISTS expense_splits;
+DROP TABLE IF EXISTS split_status;
+DROP TABLE IF EXISTS users;
+DROP TABLE IF EXISTS expenses;
+DROP TABLE IF EXISTS groups;
