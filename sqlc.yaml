@@ -1,0 +1,9 @@
+version: "1"
+packages:
+  - name: "db"                 # Go package name for generated code
+    path: "./db"               # Output directory for generated code
+    engine: "postgresql"       # Database engine: postgresql, mysql, sqlite
+    schema: "./db/schema/"       # Path to your SQL schema file
+    queries: "./db/queries/"        # Directory containing your SQL query files
+    emit_json_tags: true       # Include JSON tags in generated structs
+    emit_prepared_queries: false  # Whether to generate prepared query methods
